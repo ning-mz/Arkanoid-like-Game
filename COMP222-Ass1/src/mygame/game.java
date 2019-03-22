@@ -41,7 +41,8 @@ public class game extends SimpleApplication{
     private Spatial leftBoundary;
     private Spatial rightBoundary;
     private Spatial upperBoundary;
-    private Node board;
+    private Spatial board;
+    private Node boardNode = new Node("Board");
     private Geometry arrow;
     private Node table = new Node("Table");
     
@@ -49,13 +50,16 @@ public class game extends SimpleApplication{
     private DirectionalLight directionalLight;
     
     
-    private Node ballNode;
-    private Node targetNode;
+    private Node ballNode = new Node("Ball") ;
+    private Node targetNode = new Node("Targets");
     
     //properties of ball
     private Vector3f ballDirection;
     private float ballSpeed = .5f;
     private float boardMoveSpeed = .5f;
+    
+    private int level;
+   
     
     
  
@@ -97,12 +101,14 @@ public class game extends SimpleApplication{
         
         rootNode.attachChild(table);
         
+        
+        
         //set board
+        board = assetManager.loadModel(INPUT_MAPPING_EXIT);
+        boardNode.attachChild(board);
         
-        //board = asssetManager.loadModel("Models/*****************");
         
-        
-        //set arrow for start game
+        //set arrow of ball
         arrow = new Geometry("arrow", new Arrow(
                 new Vector3f(3 * FastMath.cos(FastMath.QUARTER_PI), 3 * FastMath.sin(FastMath.QUARTER_PI), 0)));
         Material matForArrow = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
@@ -116,8 +122,7 @@ public class game extends SimpleApplication{
         ball = new Geometry("ball", new Sphere(50, 50, .5f));
         Material matForBall = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
         matForBall.setTexture("DiffuseMap", assetManager.loadTexture(""));
-        ball.setMaterial(matForBall);
-        ballNode = new Node("Ball");
+        ball.setMaterial(matForBall);        
         rootNode.attachChild(ballNode);
     
         
@@ -126,7 +131,6 @@ public class game extends SimpleApplication{
         Material matForTarget = new Material(assetManager, "Common?MatDefs/Light/Lighting.j3md");
         matForTarget.setTexture("DiffuseMap", assetManager.loadTexture(""));
         target.setMaterial(matForTarget);
-        targetNode = new Node("Targets");
         rootNode.attachChild(targetNode);
         
         
@@ -235,6 +239,7 @@ public class game extends SimpleApplication{
     public void simpleInitApp() {
         viewPort.setBackgroundColor(ColorRGBA.DarkGray);
         flyCam.setEnabled(false);
+        cam.setFrustumPerspective(45, settings.getWidth()/ settings.getHeight(), 1, 100);
         cam.setLocation(new Vector3f(14 ,14 ,35));
         cam.lookAt(new Vector3f(14, 14, 0), Vector3f.UNIT_Y);
         audioRenderer.setEnvironment(new Environment(Environment.Garage));
@@ -249,16 +254,35 @@ public class game extends SimpleApplication{
     @Override
     public void simpleUpdate(float tpf){
         
+        if (!start){
+            return;
+        
+        }
+        
+        //watching level finished
+        if (level <= 2){
+            
+            
+            return;
+        
+        }else if( level > 2){
+        
+            return;
+        }
+        
+        
+        
         
         //collision with boundary
         
         if(ball.getLocalTranslation().x <= LEFT_BOUNDARY){
-            
+            ballDirection.x = FastMath.abs(ballDirection.x);           
         }else if(ball.getLocalTranslation().x >= RIGHT_BOUNDARY){
-            
+            ballDirection.x = -FastMath.abs(ballDirection.x);           
         }else if(ball.getLocalTranslation().y >= UPPER_BOUNDARY){
-            
+            ballDirection.y = -FastMath.abs(ballDirection.y);        
         }
+        
         
         
         //collision with targets
@@ -280,7 +304,7 @@ public class game extends SimpleApplication{
             return;
         }
             
-        //watching / move ball
+        //watching & move ball
         if (ball.getLocalTranslation().y < LOWER_BOUNDARY){
             
             return;
@@ -290,9 +314,6 @@ public class game extends SimpleApplication{
         
         
         
-        
-        //update movement of ball
-        ball.move(ballDirection.mult(ballSpeed * tpf));
 
     }
  
