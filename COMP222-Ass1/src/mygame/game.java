@@ -35,6 +35,7 @@ public class game extends SimpleApplication{
     private float RIGHT_BOUNDARY = 0f;
     private float UPPER_BOUNDARY = 0f;
     private float LOWER_BOUNDARY = 0f;
+    private static final float ARROW_LENGTH = 2.5f;
     
     
     private Spatial backGround;
@@ -71,6 +72,7 @@ public class game extends SimpleApplication{
     //flags
     private boolean initSuceed = false;
     private boolean start = false;
+    private boolean running = false;
     
     
     public void startGame(){
@@ -186,14 +188,17 @@ public class game extends SimpleApplication{
         public void onAction(String name, boolean isPressed, float tpf) {
             if (!start){
                 if (name.equals("Up")){
+                    Float angle = arrow.getUserData("angle");
+                    ballDirection = new Vector3f(ARROW_LENGTH * FastMath.cos(angle),  ARROW_LENGTH * FastMath.sign(angle), 0).normalize();
+                    start = true;
+                    running = true;
                     
                 
                 }
             
             }else{
                 if (isPressed && name.equals("Up")){
-                    
-                
+                    running = !running;               
                 }
             
             
@@ -235,6 +240,22 @@ public class game extends SimpleApplication{
     
     }
   
+    public void configureLevel(){
+        boardMoveSpeed = 2f;
+    
+        
+        
+        
+        
+        
+        
+        
+        
+    }
+    
+    
+    
+    
     @Override
     public void simpleInitApp() {
         viewPort.setBackgroundColor(ColorRGBA.DarkGray);
@@ -253,11 +274,11 @@ public class game extends SimpleApplication{
     
     @Override
     public void simpleUpdate(float tpf){
-        
-        if (!start){
+        //watching state of game
+        if (!running)
+            return;      
+        if (!start)
             return;
-        
-        }
         
         //watching level finished
         if (level <= 2){
@@ -273,8 +294,7 @@ public class game extends SimpleApplication{
         
         
         
-        //collision with boundary
-        
+        //collision with boundary      
         if(ball.getLocalTranslation().x <= LEFT_BOUNDARY){
             ballDirection.x = FastMath.abs(ballDirection.x);           
         }else if(ball.getLocalTranslation().x >= RIGHT_BOUNDARY){
@@ -286,9 +306,23 @@ public class game extends SimpleApplication{
         
         
         //collision with targets
-        
-        
-        
+        CollisionResults targetCollision = new CollisionResults();
+        for (Spatial target : targetNode.getChildren()){
+            target.collideWith(ball.getWorldBound(), targetCollision);
+            if (targetCollision.size() > 0){
+                //targetCollision.clear();           
+                targetNode.setUserData("delete", target);
+                targetNode.setUserData("vector", target.getLocalTranslation().subtract(ball.getLocalTranslation()));
+                break;
+            }
+        }
+        if (targetNode.getUserData("delete") != null){
+            targetNode.detachChild((Spatial)targetNode.getUserData("delete"));
+            Vector3f collideVector = targetNode.getUserData("vector");
+            ballDirection = collideVector.mult((ballDirection.dot(collideVector) * 2 ) / collideVector.dot(collideVector)).subtract(ballDirection).negate();
+            targetNode.setUserData("delete", null);
+            targetNode.setUserData("vector", null);
+        } 
         
         //collision with board
         CollisionResults boardCollision = new CollisionResults();
@@ -304,7 +338,7 @@ public class game extends SimpleApplication{
             return;
         }
             
-        //watching & move ball
+        //watching is ball fall
         if (ball.getLocalTranslation().y < LOWER_BOUNDARY){
             
             return;
