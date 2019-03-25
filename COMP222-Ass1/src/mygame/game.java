@@ -38,10 +38,7 @@ public class game extends SimpleApplication{
     private static final float ARROW_LENGTH = 2.5f;
     
     
-    private Spatial backGround;
-    private Spatial leftBoundary;
-    private Spatial rightBoundary;
-    private Spatial upperBoundary;
+    private Spatial boundary;
     private Spatial board;
     private Node boardNode = new Node("Board");
     private Geometry arrow;
@@ -86,27 +83,20 @@ public class game extends SimpleApplication{
     
     public void setEnvironment(){
         //set background
-        backGround = assetManager.loadModel("Models/*********");
-        leftBoundary = assetManager.loadModel(INPUT_MAPPING_EXIT);
-        rightBoundary = assetManager.loadModel(INPUT_MAPPING_EXIT);
-        upperBoundary = assetManager.loadModel(INPUT_MAPPING_EXIT);
-        
+  
+        boundary = assetManager.loadModel("Models/Border.j3o");       
         //board = assetManager.loadModel(INPUT_MAPPING_EXIT);
         
         
         
         //add background
-        table.attachChild(backGround);
-        table.attachChild(leftBoundary);
-        table.attachChild(rightBoundary);
-        table.attachChild(upperBoundary);
-        
+        table.attachChild(boundary);      
         rootNode.attachChild(table);
         
         
         
         //set board
-        board = assetManager.loadModel(INPUT_MAPPING_EXIT);
+        board = assetManager.loadModel("Models/Board2.j3o");
         boardNode.attachChild(board);
         
         
@@ -120,18 +110,18 @@ public class game extends SimpleApplication{
         
         
         
-        //set balls
+        //set ball
         ball = new Geometry("ball", new Sphere(50, 50, .5f));
         Material matForBall = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
-        matForBall.setTexture("DiffuseMap", assetManager.loadTexture(""));
+        matForBall.setTexture("DiffuseMap", assetManager.loadTexture("Textures/red.jpg"));
         ball.setMaterial(matForBall);        
         rootNode.attachChild(ballNode);
     
         
         //set targets
         target = new Geometry("target", new Sphere(50, 50, .5f));
-        Material matForTarget = new Material(assetManager, "Common?MatDefs/Light/Lighting.j3md");
-        matForTarget.setTexture("DiffuseMap", assetManager.loadTexture(""));
+        Material matForTarget = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+        matForTarget.setTexture("DiffuseMap", assetManager.loadTexture("Textures/green.jpg"));
         target.setMaterial(matForTarget);
         rootNode.attachChild(targetNode);
         
@@ -261,8 +251,8 @@ public class game extends SimpleApplication{
         viewPort.setBackgroundColor(ColorRGBA.DarkGray);
         flyCam.setEnabled(false);
         cam.setFrustumPerspective(45, settings.getWidth()/ settings.getHeight(), 1, 100);
-        cam.setLocation(new Vector3f(14 ,14 ,35));
-        cam.lookAt(new Vector3f(14, 14, 0), Vector3f.UNIT_Y);
+        cam.setLocation(new Vector3f(15 ,15 ,35));
+        cam.lookAt(new Vector3f(15, 15, 0), Vector3f.UNIT_Y);
         audioRenderer.setEnvironment(new Environment(Environment.Garage));
         listener.setLocation(cam.getLocation());
         listener.setRotation(cam.getRotation());
