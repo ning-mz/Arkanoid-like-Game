@@ -1,2 +1,2 @@
 # Arkanoid-like-Game
-Based on jMonkeyEngine
+Coursework of COMP222, which is based on jMonkeyEngine.
