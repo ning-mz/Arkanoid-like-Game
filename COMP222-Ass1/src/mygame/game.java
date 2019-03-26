@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 package mygame;
-
+import mygame.Parameters.*;
 import com.jme3.app.SimpleApplication;
 import com.jme3.audio.Environment;
 import com.jme3.scene.Spatial;
@@ -31,34 +31,34 @@ import com.jme3.scene.debug.Arrow;
  */
 public class game extends SimpleApplication{
     //parameters of background
-    private float LEFT_BOUNDARY = 2.5f;
-    private float RIGHT_BOUNDARY = 27.5f;
-    private float UPPER_BOUNDARY = 28.5f;
-    private float LOWER_BOUNDARY = 1f;
+
+    private final float LEFT_BOUNDARY = 3f;
+    private final float RIGHT_BOUNDARY = 27f;
+    private final float UPPER_BOUNDARY = 27.5f;
+    private final float LOWER_BOUNDARY = 1f;
     private static final float ARROW_LENGTH = 2.5f;
     
     public static final float ARROW_HALF_MAX = 5*FastMath.PI /12 ;
     public static final float ARROW_HALF_MIN = FastMath.PI /12 ;
     private Spatial boundary;
     private Spatial board;
-    private Node boardNode = new Node("Board");
     private Geometry arrow;
-    private Node table = new Node("Table");
+    
     
     private AmbientLight ambientLight;
     private DirectionalLight directionalLight;
     
     
-    private Node ballNode = new Node("Ball") ;
-    private Node targetNode = new Node("Targets");
+
+    private final Node targetNode = new Node("Targets");
     
     //properties of ball
     private Vector3f ballDirection;
-    private float ballSpeed = 8f;
-    private float boardMoveSpeed = 5f;
-    
+    private final float ballSpeed = 8f;
+    private float boardMoveSpeed = 10f;
+    private Vector3f[] targetLocations;
     private int level;
-   
+    private Parameters parameters= new Parameters(); 
     
     
  
@@ -68,7 +68,6 @@ public class game extends SimpleApplication{
     
     
     //flags
-    private boolean initSuceed = false;
     private boolean start = false;
     private boolean running = false;
     
@@ -76,40 +75,70 @@ public class game extends SimpleApplication{
     public void startGame(){
         if (start)
             return;
-        setEnvironment(); 
+        level =1;
+        setEnvironment(level); 
         setKeys(true);
-        //start = true;   
     }
     
-    public void setEnvironment(){
-        //set background
-  
-        boundary = assetManager.loadModel("Models/Border.j3o");       
-        //board = assetManager.loadModel(INPUT_MAPPING_EXIT);
-        Material matForBoundary = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
-        matForBoundary.setTexture("DiffuseMap", assetManager.loadTexture("Textures/wall.jpg"));
-        boundary.setMaterial(matForBoundary); 
-         
+    public void setEnvironment(int level){
+        if (level == 1){
+            //set background 
+            boundary = assetManager.loadModel("Models/Border.j3o");       
+            Material matForBoundary = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+            matForBoundary.setTexture("DiffuseMap", assetManager.loadTexture("Textures/wall.jpg"));
+            boundary.setMaterial(matForBoundary); 
+            rootNode.attachChild(boundary);       
         
-        //add background
-        table.attachChild(boundary);      
-        rootNode.attachChild(table);
+            //set board
+            board = assetManager.loadModel("Models/Board2.j3o");
+            Material matForBoard = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+            matForBoard.setTexture("DiffuseMap", assetManager.loadTexture("Textures/wood.jpg"));
+            board.setLocalTranslation(13, 0, 3); 
+            board.setMaterial(matForBoard);
+            rootNode.attachChild(board);                                        
         
+            //set ball
+            ball = new Geometry("ball", new Sphere(50, 50, 1f));
+            Material matForBall = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+            matForBall.setTexture("DiffuseMap", assetManager.loadTexture("Textures/red.jpg"));
+            ball.setMaterial(matForBall);               
+            ball.setLocalTranslation(15, 2f, 1.9f);
+            rootNode.attachChild(ball);
+            
+            //set lights
+            ambientLight = new AmbientLight();
+            directionalLight = new DirectionalLight();
+            ambientLight.setColor(ColorRGBA.White.mult(1.5f));
+            directionalLight.setColor(ColorRGBA.White.mult(.5f));
+            directionalLight.setDirection(Vector3f.UNIT_Z.negate());
+            rootNode.addLight(ambientLight);
+            rootNode.addLight(directionalLight);      
+            
+        }else if(level == 2){
+            ball.setLocalTranslation(15, 2f, 1.9f);
+            board.setLocalTranslation(13, 0, 3);       
+        }else if(level == 3){
+            ball.setLocalTranslation(15, 2f, 1.9f);
+            board.setLocalTranslation(13, 0, 3);   
+        }
         
-        
-        //set board
-        board = assetManager.loadModel("Models/Board2.j3o");
-        Material matForBoard = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
-        matForBoard.setTexture("DiffuseMap", assetManager.loadTexture("Textures/wood.jpg"));
-        board.setLocalTranslation(15, 0, 2);
-        board.setMaterial(matForBoard);
-        boardNode.attachChild(board);
-        rootNode.attachChild(boardNode);
-        
+        //set targets
+        target = new Geometry("target", new Sphere(50, 50, 1f));
+        Material matForTarget = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+        matForTarget.setTexture("DiffuseMap", assetManager.loadTexture("Textures/green.jpg"));
+        target.setMaterial(matForTarget);       
+        targetLocations = parameters.getLocationsOfTarget(level);
+        targetNode.detachAllChildren();
+        for(int a = 0; a<9; a++){
+            Geometry newTarget = target.clone();
+            newTarget.setLocalTranslation(targetLocations[a]);
+            targetNode.attachChild(newTarget);
+        }          
+        rootNode.attachChild(targetNode);  
         
         //set arrow of ball
         arrow = new Geometry("arrow", new Arrow(
-                new Vector3f(3 * FastMath.cos(FastMath.QUARTER_PI), 3 * FastMath.sin(FastMath.QUARTER_PI), 0)));
+                    new Vector3f(3 * FastMath.cos(FastMath.QUARTER_PI), 3 * FastMath.sin(FastMath.QUARTER_PI), 0)));
         Material matForArrow = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         matForArrow.setColor("Color", ColorRGBA.Blue);
         arrow.setMaterial(matForArrow);
@@ -120,40 +149,12 @@ public class game extends SimpleApplication{
         
         
         
-        //set ball
-        ball = new Geometry("ball", new Sphere(50, 50, .5f));
-        Material matForBall = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
-        matForBall.setTexture("DiffuseMap", assetManager.loadTexture("Textures/red.jpg"));
-        ball.setMaterial(matForBall);        
-        rootNode.attachChild(ballNode);
-        ball.setLocalTranslation(14, 1.5f, 1);
-        rootNode.attachChild(ball);
-    
-        
-        //set targets
-        target = new Geometry("target", new Sphere(50, 50, .5f));
-        Material matForTarget = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
-        matForTarget.setTexture("DiffuseMap", assetManager.loadTexture("Textures/green.jpg"));
-        target.setMaterial(matForTarget);
-        rootNode.attachChild(targetNode);
-        
-        
-        //set lights
-        ambientLight = new AmbientLight();
-        directionalLight = new DirectionalLight();
-        ambientLight.setColor(ColorRGBA.White.mult(1.5f));
-        directionalLight.setColor(ColorRGBA.White.mult(.5f));
-        directionalLight.setDirection(Vector3f.UNIT_Z.negate());
-        rootNode.addLight(ambientLight);
-        rootNode.addLight(directionalLight);
-        
         
         
     } 
     private class analogControl implements AnalogListener{
         @Override
-        public void onAnalog(String name, float value, float tpf) {
-                        
+        public void onAnalog(String name, float value, float tpf) {                       
             if (!start){
                 if (name.equals("Left")){
                     Float angle = arrow.getUserData("angle");
@@ -167,16 +168,14 @@ public class game extends SimpleApplication{
                     angle = (angle > ARROW_HALF_MAX && angle < (FastMath.PI - ARROW_HALF_MAX)) ? ARROW_HALF_MAX : angle;
                     angle = (angle <= ARROW_HALF_MIN) ? ARROW_HALF_MIN : angle - tpf * FastMath.QUARTER_PI;
                     ((Arrow) arrow.getMesh()).setArrowExtent(new Vector3f(ARROW_LENGTH * FastMath.cos(angle), ARROW_LENGTH * FastMath.sin(angle), 0));
-                    arrow.setUserData("angle", angle);
-                
+                    arrow.setUserData("angle", angle);               
                 }
             }else if(start){
                 if (name.equals("Left")){                   
                     board.move(Vector3f.UNIT_X.mult(-boardMoveSpeed * tpf));
                 }else if (name.equals("Right")){
                     board.move(Vector3f.UNIT_X.mult(boardMoveSpeed * tpf));
-                }
-            
+                }         
             
             }else{
                      
@@ -204,8 +203,7 @@ public class game extends SimpleApplication{
             
             }else{
                 if (isPressed && name.equals("Up")){
-                    running = !running;  
-                    
+                    running = !running;           
                 }
             
             
@@ -219,8 +217,8 @@ public class game extends SimpleApplication{
     }
     
     
-    private analogControl boardControl = new analogControl();
-    private actionControl otherControl = new actionControl();
+    private final analogControl boardControl = new analogControl();
+    private final actionControl otherControl = new actionControl();
     
     public void setKeys(boolean flag){
         if (flag == true){       
@@ -262,8 +260,8 @@ public class game extends SimpleApplication{
         viewPort.setBackgroundColor(ColorRGBA.DarkGray);
         flyCam.setEnabled(false);
         cam.setFrustumPerspective(45, settings.getWidth()/ settings.getHeight(), 1, 100);
-        cam.setLocation(new Vector3f(20 ,20 ,40));
-        cam.lookAt(new Vector3f(16, 16, 0), Vector3f.UNIT_Y);
+        cam.setLocation(new Vector3f(15 ,0 ,40));
+        cam.lookAt(new Vector3f(15, 15, 0), Vector3f.UNIT_Y);
         audioRenderer.setEnvironment(new Environment(Environment.Garage));
         listener.setLocation(cam.getLocation());
         listener.setRotation(cam.getRotation());
@@ -280,21 +278,7 @@ public class game extends SimpleApplication{
             return;      
         
         if (!start)
-            return;
-
-        //watching level finished
-        /*
-        if (level <= 2){
-            
-            
-            return;
-        
-        }else if( level > 2){
-        
-            return;
-        }
-        */
-        
+            return;     
         
         
         //collision with boundary      
@@ -309,7 +293,7 @@ public class game extends SimpleApplication{
         
         
         //collision with targets
-        /*
+       
         CollisionResults targetCollision = new CollisionResults();
         for (Spatial target : targetNode.getChildren()){
             target.collideWith(ball.getWorldBound(), targetCollision);
@@ -327,7 +311,7 @@ public class game extends SimpleApplication{
             targetNode.setUserData("delete", null);
             targetNode.setUserData("vector", null);
         } 
-        */
+         
         //collision with board
         CollisionResults boardCollision = new CollisionResults();
         board.collideWith(ball.getWorldBound(), boardCollision);
@@ -338,8 +322,13 @@ public class game extends SimpleApplication{
         
         //watching is empty of targets
         if (targetNode.getChildren().isEmpty()){
-            //this level done
-            //return;
+            if (level < 3){
+                level++;
+                start = false;
+                running = false;
+                setEnvironment(level);
+                return;
+            }             
         }
             
         //watching is ball fall
