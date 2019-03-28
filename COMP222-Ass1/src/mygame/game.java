@@ -14,6 +14,7 @@ import com.jme3.scene.Geometry;
 import com.jme3.scene.shape.Sphere;
 import com.jme3.material.Material;
 import com.jme3.collision.CollisionResults;
+import com.jme3.font.BitmapText;
 import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.AnalogListener;
@@ -55,25 +56,17 @@ public class game extends SimpleApplication{
     private Picture pictureWin = new Picture("PictureWin");
     private AmbientLight ambientLight;
     private DirectionalLight directionalLight;
-    
-
     private final Node targetNode = new Node("Targets");
-
-    
-    //properties of ball
     private Vector3f ballDirection;
     private float ballSpeed;
     private float boardMoveSpeed;
     private Vector3f[] targetLocations;
     private int level;
     private Parameters parameters= new Parameters(); 
-    
-    
- 
-    
+    private BitmapText text;
     private Geometry ball; 
     private Geometry target;
-    
+    private int score;
     
     //flags
     private boolean start = false;
@@ -88,15 +81,25 @@ public class game extends SimpleApplication{
             if (!start){
                 if (name.equals("Left")){
                     Float angle = arrow.getUserData("angle");
-                    angle = (angle > ARROW_HALF_MAX && angle < (FastMath.PI - ARROW_HALF_MAX)) ? FastMath.PI - ARROW_HALF_MAX : angle;
-                    angle = (angle >= (FastMath.PI - ARROW_HALF_MIN)) ? FastMath.PI - ARROW_HALF_MIN : angle + tpf * FastMath.QUARTER_PI;
+                    if (angle > ARROW_HALF_MAX && angle < (FastMath.PI - ARROW_HALF_MAX))
+                        angle = FastMath.PI - ARROW_HALF_MAX;
+                    if (angle >= (FastMath.PI - ARROW_HALF_MIN)){
+                        angle = FastMath.PI - ARROW_HALF_MIN;
+                    }else{
+                        angle = angle + tpf * FastMath.QUARTER_PI;
+                    } 
                     ((Arrow) arrow.getMesh()).setArrowExtent(new Vector3f(ARROW_LENGTH * FastMath.cos(angle), ARROW_LENGTH * FastMath.sin(angle), 0));
-                    arrow.setUserData("angle", angle); 
-                    
+                    arrow.setUserData("angle", angle);                   
                 }else if (name.equals("Right")){
                     Float angle = arrow.getUserData("angle");
-                    angle = (angle > ARROW_HALF_MAX && angle < (FastMath.PI - ARROW_HALF_MAX)) ? ARROW_HALF_MAX : angle;
-                    angle = (angle <= ARROW_HALF_MIN) ? ARROW_HALF_MIN : angle - tpf * FastMath.QUARTER_PI;
+                    
+                    if (angle > ARROW_HALF_MAX && angle < (FastMath.PI - ARROW_HALF_MAX))
+                        angle = ARROW_HALF_MAX;
+                    if (angle <= ARROW_HALF_MIN){
+                        angle = ARROW_HALF_MIN;
+                    }else{
+                        angle = angle - tpf * FastMath.QUARTER_PI;
+                    }   
                     ((Arrow) arrow.getMesh()).setArrowExtent(new Vector3f(ARROW_LENGTH * FastMath.cos(angle), ARROW_LENGTH * FastMath.sin(angle), 0));
                     arrow.setUserData("angle", angle);               
                 }
@@ -149,7 +152,7 @@ public class game extends SimpleApplication{
         if (start)
             return;
         level = 1;
-        setEnvironment(level, true); 
+        setEnvironment(level, true);        
         //setAllKeys(true);
     }
     
@@ -160,7 +163,15 @@ public class game extends SimpleApplication{
             Material matForBoundary = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
             matForBoundary.setTexture("DiffuseMap", assetManager.loadTexture("Textures/wall.jpg"));
             boundary.setMaterial(matForBoundary); 
-            rootNode.attachChild(boundary);       
+            rootNode.attachChild(boundary);     
+            
+            //set score pannel
+            text = new BitmapText(assetManager.loadFont("Interface/Fonts/Default.fnt"));
+            text.setSize(3f);
+            text.setLocalTranslation(-13, 20, 1.9f);      
+            rootNode.attachChild(text);
+            text.setText("Score: " + score + "\n" + "Level: " + level);
+            
         
             //set board
             board1 = assetManager.loadModel("Models/Board1.j3o");
@@ -214,6 +225,7 @@ public class game extends SimpleApplication{
             rootNode.attachChild(picture);
             inputManager.addMapping("Space", new KeyTrigger(KeyInput.KEY_SPACE));
             inputManager.addListener(otherControl, "Space"); 
+            score = 0;
             
         }else if((level == 1) && (firstTimeFlag == false)){
             rootNode.detachChild(board);
@@ -224,6 +236,8 @@ public class game extends SimpleApplication{
             rootNode.attachChild(board);
             ballSpeed = 14f;
             boardMoveSpeed = 10f;
+            score = 0;
+            text.setText("Score: " + score + "\n" + "Level: " + level);
         }else if(level == 2){
             rootNode.detachChild(board);
             ball.setLocalTranslation(15, 2f, 1.9f);
@@ -232,6 +246,7 @@ public class game extends SimpleApplication{
             rootNode.attachChild(board);
             ballSpeed = 18f;
             boardMoveSpeed = 12f;
+            text.setText("Score: " + score + "\n" + "Level: " + level);
         }else if(level == 3){
             rootNode.detachChild(board);
             ball.setLocalTranslation(15, 2f, 1.9f);
@@ -240,6 +255,7 @@ public class game extends SimpleApplication{
             rootNode.attachChild(board);      
             ballSpeed = 20f;
             boardMoveSpeed = 14f;
+            text.setText("Score: " + score + "\n" + "Level: " + level);
         }
         
         //set targets
@@ -334,6 +350,8 @@ public class game extends SimpleApplication{
         if (!start)
             return;     
        
+        text.setText("Score: " + score + "\n" + "Level: " + level);
+        
         //collision with boundary      
         if(ball.getLocalTranslation().x <= LEFT_BOUNDARY){
             if (ballDirection.x < 0){
@@ -371,6 +389,7 @@ public class game extends SimpleApplication{
             ballDirection = collideVector.mult((ballDirection.dot(collideVector) * 2 ) / collideVector.dot(collideVector)).subtract(ballDirection).negate();
             targetNode.setUserData("remove", null);
             targetNode.setUserData("direction", null);
+            score++;
         } 
          
         //collision with board
@@ -412,6 +431,7 @@ public class game extends SimpleApplication{
         if (ball.getLocalTranslation().y < LOWER_BOUNDARY){   
             failedAudio.playInstance();
             level = 1;
+            score = 0;
             start = false;
             running = false;
             setEnvironment(level, false);
