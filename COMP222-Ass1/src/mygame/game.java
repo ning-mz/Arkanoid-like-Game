@@ -48,7 +48,6 @@ public class game extends SimpleApplication{
     private AmbientLight ambientLight;
     private DirectionalLight directionalLight;
     
-    
 
     private final Node targetNode = new Node("Targets");
     
@@ -70,18 +69,20 @@ public class game extends SimpleApplication{
     //flags
     private boolean start = false;
     private boolean running = false;
+    private boolean leftKeyFlag = true;
+    private boolean rightKeyFlag = true;
     
     
     public void startGame(){
         if (start)
             return;
         level =1;
-        setEnvironment(level); 
-        setKeys(true);
+        setEnvironment(level, true); 
+        setAllKeys(true);
     }
     
-    public void setEnvironment(int level){
-        if (level == 1){
+    public void setEnvironment(int level, boolean firstTimeFlag){
+        if ((level == 1) && (firstTimeFlag == true)){
             //set background 
             boundary = assetManager.loadModel("Models/Border.j3o");       
             Material matForBoundary = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
@@ -92,7 +93,7 @@ public class game extends SimpleApplication{
             //set board
             board = assetManager.loadModel("Models/Board2.j3o");
             Material matForBoard = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
-            matForBoard.setTexture("DiffuseMap", assetManager.loadTexture("Textures/wood.jpg"));
+            matForBoard.setTexture("DiffuseMap", assetManager.loadTexture("Textures/board.jpg"));
             board.setLocalTranslation(13, 0, 3); 
             board.setMaterial(matForBoard);
             rootNode.attachChild(board);                                        
@@ -114,6 +115,10 @@ public class game extends SimpleApplication{
             rootNode.addLight(ambientLight);
             rootNode.addLight(directionalLight);      
             
+        }else if((level == 1) && (firstTimeFlag == false)){
+            ball.setLocalTranslation(15, 2f, 1.9f);
+            board.setLocalTranslation(13, 0, 3);
+            targetNode.detachAllChildren();
         }else if(level == 2){
             ball.setLocalTranslation(15, 2f, 1.9f);
             board.setLocalTranslation(13, 0, 3);       
@@ -152,6 +157,8 @@ public class game extends SimpleApplication{
         
         
     } 
+    
+    
     private class analogControl implements AnalogListener{
         @Override
         public void onAnalog(String name, float value, float tpf) {                       
@@ -170,15 +177,12 @@ public class game extends SimpleApplication{
                     ((Arrow) arrow.getMesh()).setArrowExtent(new Vector3f(ARROW_LENGTH * FastMath.cos(angle), ARROW_LENGTH * FastMath.sin(angle), 0));
                     arrow.setUserData("angle", angle);               
                 }
-            }else if(start){
+            }else if(start){           
                 if (name.equals("Left")){                   
                     board.move(Vector3f.UNIT_X.mult(-boardMoveSpeed * tpf));
                 }else if (name.equals("Right")){
-                    board.move(Vector3f.UNIT_X.mult(boardMoveSpeed * tpf));
-                }         
-            
-            }else{
-                     
+                        board.move(Vector3f.UNIT_X.mult(boardMoveSpeed * tpf));
+                }           
             }
             
             
@@ -203,7 +207,8 @@ public class game extends SimpleApplication{
             
             }else{
                 if (isPressed && name.equals("Up")){
-                    running = !running;           
+                    running = !running;  
+                    
                 }
             
             
@@ -220,7 +225,7 @@ public class game extends SimpleApplication{
     private final analogControl boardControl = new analogControl();
     private final actionControl otherControl = new actionControl();
     
-    public void setKeys(boolean flag){
+    public void setAllKeys(boolean flag){
         if (flag == true){       
             inputManager.addMapping("Left", new KeyTrigger(KeyInput.KEY_LEFT));
             inputManager.addMapping("Right", new KeyTrigger(KeyInput.KEY_RIGHT));
@@ -239,20 +244,22 @@ public class game extends SimpleApplication{
         }
     }
    
-    
-    public void setGUI(){
-        
-    
+    public void setAnalogKey(String key, boolean flag){
+        if (flag == true){
+            if (key.equals("Left"))
+                inputManager.addMapping("Left", new KeyTrigger(KeyInput.KEY_LEFT));
+            inputManager.addListener(boardControl, "Left");
+            if (key.equals("Right"))
+                inputManager.addMapping("Right", new KeyTrigger(KeyInput.KEY_RIGHT));
+            inputManager.addListener(boardControl, "Right");
+        }else if(flag == false){
+            if (key.equals("Left"))
+                inputManager.deleteMapping("Left");
+            if (key.equals("Right"))
+                inputManager.deleteMapping("Right");       
+        }   
     }
-  
-    public void configureLevel(){
-        boardMoveSpeed = 2f;
-          
-        
-        
-    }
-    
-    
+ 
     
     
     @Override
@@ -292,8 +299,7 @@ public class game extends SimpleApplication{
         
         
         
-        //collision with targets
-       
+        //collision with targets       
         CollisionResults targetCollision = new CollisionResults();
         for (Spatial target : targetNode.getChildren()){
             target.collideWith(ball.getWorldBound(), targetCollision);
@@ -326,25 +332,44 @@ public class game extends SimpleApplication{
                 level++;
                 start = false;
                 running = false;
-                setEnvironment(level);
+                setEnvironment(level, false);
                 return;
             }             
         }
             
         //watching is ball fall
-        if (ball.getLocalTranslation().y < LOWER_BOUNDARY){
-            
+        if (ball.getLocalTranslation().y < LOWER_BOUNDARY){           
+            level = 1;
+            start = false;
+            running = false;
+            setEnvironment(level, false);
             return;
         }
         
-
+        //watching board collision with bundary
+        CollisionResults boardAndBoundary = new CollisionResults();
+        boundary.collideWith(board.getWorldBound(), boardAndBoundary);
+        if ((boardAndBoundary.size() > 0)){
+            if((board.getLocalTranslation().x < 10) && (leftKeyFlag == true)){
+                setAnalogKey("Left", false);
+                leftKeyFlag = false;
+            }else if((board.getLocalTranslation().x > 20) && (rightKeyFlag == true)){
+                setAnalogKey("Right", false);
+                rightKeyFlag = false;
+            }
+        }else{         
+            if(leftKeyFlag == false){
+                setAnalogKey("Left", true);
+                leftKeyFlag = true;
+            }else if (rightKeyFlag == false){
+                setAnalogKey("Right", true);
+                rightKeyFlag = true;
+            }
+        }
+        
+        
+        
+        
         ball.move(ballDirection.mult(ballSpeed * tpf));
-        
-        
-        
-        
-
-    }
- 
-   
+    }   
 }
